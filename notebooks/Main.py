@@ -16,3 +16,5 @@ for etapa, notebook in pipeline.items():
     except Exception as erro:
         print(f"Falha na etapa {etapa}")
         raise erro
+
+print("Processo finalizado")        
