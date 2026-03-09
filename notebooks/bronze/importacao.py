@@ -30,3 +30,5 @@ if not spark.catalog.tableExists("workspace.bronze.cisp_raw"):
                 .saveAsTable("workspace.bronze.cisp_raw")
 else:
     spark.sql("""insert into workspace.bronze.cisp_raw select * from df_raw_limpo where not exists (select * from workspace.bronze.cisp_raw)""")
+    
+    print("Finalizado o processo de coleta de dados")
