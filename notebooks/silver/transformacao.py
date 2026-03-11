@@ -3,132 +3,159 @@
 
 # COMMAND ----------
 
-df_silver= spark.read.table("workspace.bronze.cisp_raw")
+def leitura_bronze():
 
-df_silver = df_silver.filter(to_date(col("ingestion_data")) == current_date())
-
-# marca os registros invalidados
-df_silver = df_silver.withColumn("invalido",
-            when(col("cisp").rlike("^[0-9]+$"), None)
-            .otherwise("x"))
-
-# elimina as regiões preenchidas com números
-df_silver = df_silver.withColumn("regiao",
-            when(col("cisp").rlike("^[0-9]+$"), col("regiao"))
-            .otherwise(None))            
-
-# elimina as regiões nulas
-df_silver = df_silver.filter(col("regiao").isNotNull())
-
-#substituição de dados incorrtos
-df_silver= df_silver.replace({"Grande NiterÃÂÃÂÃÂÃÂ³i":"Grande Niterói" \
-                ,"Grande NiterÃÂ³i":"Grande Niterói"\
-                ,"Grande NiterÃ³i":"Grande Niterói"}, subset=["regiao"])
-
-#conversão das colunas
-df_silver = df_silver.withColumn("mes",col("mes").cast("int"))
-df_silver = df_silver.withColumn("ano",col("ano").cast("int"))
-df_silver = df_silver.withColumn("hom_doloso",col("hom_doloso").cast("int"))
-df_silver = df_silver.withColumn("lesao_corp_morte",col("lesao_corp_morte").cast("int"))
-df_silver = df_silver.withColumn("latrocinio",col("latrocinio").cast("int"))
-df_silver = df_silver.withColumn("roubo_transeunte",col("roubo_transeunte").cast("int"))
-df_silver = df_silver.withColumn("roubo_celular",col("roubo_celular").cast("int"))
-df_silver = df_silver.withColumn("roubo_em_coletivo",col("roubo_em_coletivo").cast("int"))
-df_silver = df_silver.withColumn("roubo_rua",col("roubo_rua").cast("int"))
-df_silver = df_silver.withColumn("roubo_veiculo",col("roubo_veiculo").cast("int"))
-df_silver = df_silver.withColumn("roubo_carga",col("roubo_carga").cast("int"))
-df_silver = df_silver.withColumn("roubo_comercio",col("roubo_comercio").cast("int"))
-df_silver = df_silver.withColumn("roubo_comercio",col("roubo_comercio").cast("int"))
-df_silver = df_silver.withColumn("roubo_residencia",col("roubo_residencia").cast("int"))
-df_silver = df_silver.withColumn("roubo_banco",col("roubo_banco").cast("int"))
-df_silver = df_silver.withColumn("roubo_cx_eletronico",col("roubo_cx_eletronico").cast("int"))
-df_silver = df_silver.withColumn("roubo_conducao_saque",col("roubo_conducao_saque").cast("int"))
-df_silver = df_silver.withColumn("roubo_apos_saque",col("roubo_apos_saque").cast("int"))
-df_silver = df_silver.withColumn("roubo_bicicleta",col("roubo_bicicleta").cast("int"))
-df_silver = df_silver.withColumn("outros_roubos",col("outros_roubos").cast("int"))
-df_silver = df_silver.withColumn("outros_roubos",col("outros_roubos").cast("int"))
-df_silver = df_silver.withColumn("outros_roubos",col("outros_roubos").cast("int"))
-df_silver = df_silver.withColumn("furto_transeunte",col("furto_transeunte").cast("int"))
-df_silver = df_silver.withColumn("furto_coletivo",col("furto_coletivo").cast("int"))
-df_silver = df_silver.withColumn("furto_celular",col("furto_celular").cast("int"))
-df_silver = df_silver.withColumn("furto_bicicleta",col("furto_bicicleta").cast("int"))
-df_silver = df_silver.withColumn("outros_furtos",col("outros_furtos").cast("int"))
-df_silver = df_silver.withColumn("total_furtos",col("total_furtos").cast("int"))
-df_silver = df_silver.withColumn("sequestro",col("sequestro").cast("int"))
-df_silver = df_silver.withColumn("sequestro_relampago",col("sequestro_relampago").cast("int"))
-df_silver = df_silver.withColumn("estelionato",col("estelionato").cast("int"))
-df_silver = df_silver.withColumn("apreensao_drogas",col("apreensao_drogas").cast("int"))
-df_silver = df_silver.withColumn("posse_drogas",col("posse_drogas").cast("int"))
-df_silver = df_silver.withColumn("trafico_drogas",col("trafico_drogas").cast("int"))
-df_silver = df_silver.withColumn("apreensao_drogas_sem_autor",col("apreensao_drogas_sem_autor").cast("int"))
-df_silver = df_silver.withColumn("recuperacao_veiculos",col("recuperacao_veiculos").cast("int"))
-df_silver = df_silver.withColumn("apf",col("apf").cast("int"))
-df_silver = df_silver.withColumn("aaapai",col("aaapai").cast("int"))
-df_silver = df_silver.withColumn("cmp",col("cmp").cast("int"))
-df_silver = df_silver.withColumn("cmba",col("cmba").cast("int"))
-df_silver = df_silver.withColumn("ameaca",col("ameaca").cast("int"))
-df_silver = df_silver.withColumn("pessoas_desaparecidas",col("pessoas_desaparecidas").cast("int"))
-df_silver = df_silver.withColumn("encontro_cadaver",col("encontro_cadaver").cast("int"))
-df_silver = df_silver.withColumn("encontro_ossada",col("encontro_ossada").cast("int"))  
-df_silver = df_silver.withColumn("pol_militares_mortos_serv",col("pol_militares_mortos_serv").cast("int"))  
-df_silver = df_silver.withColumn("pol_civis_mortos_serv",col("pol_civis_mortos_serv").cast("int"))  
-df_silver = df_silver.withColumn("fase",col("fase").cast("int"))  
+    df_bronze= spark.read.table(f"{table_bronze}")
+    df_bronze = df_bronze.filter(to_date(col("ingestion_data")) == current_date())
+    return df_bronze
 
 
-#usa apenas os invalidados
-df_erro = df_silver.where (col("invalido")=="x")
+def trata_colunas(df_bronze):
 
-#removenddo "
-df_erro = df_erro.withColumn(
-    "cisp",
-    regexp_replace("cisp", '"', '')
-)
+    #conversão das colunas
+    cols_int = ["mes","ano","hom_doloso","latrocinio","roubo_transeunte","roubo_celular"]
 
-#removendo #
-df_erro = df_erro.withColumn(
-    "mes",
-    regexp_replace("mes", '"', '')
-)
-
-# colocando a informação na coluna regiao
-df_erro = df_erro.withColumn("regiao", df_erro["mes"])
+    for c in cols_int:
+        df_silver = df_bronze.withColumn(c, col(c).cast("int"))
+    
+    return df_silver
 
 
- #separa os dados na coluna consolidada
-df_erro = df_erro.withColumn(
-    "col_split",
-    split("cisp", ";")
-)
+def dados_incorretos(df_silver):
+
+    # elimina as regiões preenchidas com números
+    df_silver = df_silver.withColumn("regiao",
+                when(col("regiao").rlike("^[0-9]+$"), col("regiao"))
+                .otherwise(None))            
+
+    # elimina as regiões nulas
+    df_silver = df_silver.filter(col("regiao").isNotNull())
+
+    #substituição de dados incorrtos
+    df_silver= df_silver.replace({"Grande NiterÃÂÃÂÃÂÃÂ³i":"Grande Niterói" \
+                    ,"Grande NiterÃÂ³i":"Grande Niterói"\
+                    ,"Grande NiterÃ³i":"Grande Niterói"}, subset=["regiao"])
+
+    #corrigo falha na coluna mês
+    df_corrigido= df_silver.withColumn("mes",substring(col("mes_ano").cast("string"), -2, 2))
+
+    # marca os registros invalidados
+    df_corrigido = df_corrigido.withColumn("invalido", when(col("cisp").rlike("^[0-9]+$"), None).otherwise("x"))
+
+    return df_corrigido
 
 
-df_corrigido = df_erro\
-    .withColumn("cisp", col("col_split").getItem(0)) \
-    .withColumn("mes", col("col_split").getItem(1)) \
-    .withColumn("ano", col("col_split").getItem(2)) \
-    .withColumn("mes_ano", col("col_split").getItem(3)) \
-    .withColumn("aisp", col("col_split").getItem(4)) \
-    .withColumn("risp", col("col_split").getItem(5)) \
-    .withColumn("munic", col("col_split").getItem(6))    
+def define_dados_invalidos(df_corrigido):
+
+    #usa apenas os invalidados
+    df_erro = df_corrigido.where (col("invalido")=="x")
+
+    return df_erro
 
 
-#corrigo falha na coluna mês
-df_corrigido= df_corrigido.withColumn("mes",substring(col("mes_ano").cast("string"), -2, 2))
+def limpeza_dados(df_erro):
 
-#remove colunas
-df_corrigido= df_corrigido.drop("invalido","col_split")
-df_silver = df_silver.filter(col("invalido").isNull())
-df_silver= df_silver.drop("invalido")
+    #removenddo "
+    df_erro = df_erro.withColumn("cisp", regexp_replace("cisp", '"', ''))
 
-#une os datagrames
-df_silver = df_silver.union(df_corrigido)
+    #removendo #
+    df_erro = df_erro.withColumn(
+        "mes",
+        regexp_replace("mes", '"', '')
+    )
 
-#salva a tabela final
-if not spark.catalog.tableExists("workspace.silver.cisp"):
-    df_silver.write.format("delta")\
-                .mode("overwrite")\
-                .saveAsTable("workspace.silver.cisp")
+    # colocando a informação na coluna regiao
+    df_erro = df_erro.withColumn("regiao", df_erro["mes"])
+
+    return df_erro
+
+
+def dados_aglutinados(df_erro):
+
+    #separa os dados na coluna consolidada
+    df_erro = df_erro.withColumn("col_split",split("cisp", ";"))
+
+    df_erro = df_erro\
+        .withColumn("cisp", col("col_split").getItem(0)) \
+        .withColumn("mes", col("col_split").getItem(1)) \
+        .withColumn("ano", col("col_split").getItem(2)) \
+        .withColumn("mes_ano", col("col_split").getItem(3)) \
+        .withColumn("aisp", col("col_split").getItem(4)) \
+        .withColumn("risp", col("col_split").getItem(5)) \
+        .withColumn("munic", col("col_split").getItem(6))    
+
+    #remove colunas
+    df_erro= df_erro.drop("invalido","col_split")
+
+    return df_erro
+
+
+def removendo_duplicidades(df_silver, df_corrigido):
+
+    #pega os dados válidos
+    df_corrigido = df_corrigido.filter(col("invalido").isNull())
+    df_corrigido= df_corrigido.drop("invalido")
+
+    #une os dataframes
+    df_silver = df_silver.union(df_corrigido)
+
+    #criando um ID
+    df_silver = df_silver.withColumn("id", concat_ws("_", col("cisp"), \
+                                     col("mes"), col("ano"), col("aisp"), \
+                                     col("risp"),col("registro_ocorrencias")))
+
+    #cria uma particão por id ordenado
+    window = Window.partitionBy("id").orderBy(col("ingestion_data").desc())
+
+    df_silver = df_silver.withColumn("rn", row_number().over(window)) \
+                        .filter(col("rn") == 1) \
+                        .drop("rn")
+
+    return df_silver
+
+df_bronze = leitura_bronze()
+df_silver = trata_colunas(df_bronze)
+df_corrigido = dados_incorretos(df_silver)
+df_erro = define_dados_invalidos(df_corrigido)
+df_erro = limpeza_dados(df_erro)
+df_silver = dados_aglutinados(df_erro)
+df_silver = removendo_duplicidades(df_silver, df_corrigido)
+
+
+total_processado = df_silver.count()
+data_inicio = datetime.now()
+
+
+if total_processado == 0:
+    raise Exception("Pipeline gerou dataset vazio")
 else:
-    #converte em tabela temporária
-    df_silver.createOrReplaceTempView("df_silver")
-    spark.sql("""insert into workspace.silver.cisp select * from df_silver where not exists (select * from workspace.silver.cisp)""")
+    try:
+        if not spark.catalog.tableExists("workspace.silver.cisp"):
+            df_silver.write.format("delta")\
+                        .mode("overwrite")\
+                        .saveAsTable("workspace.silver.cisp")
+        else:
+            #converte em tabela temporária
+            df_silver.createOrReplaceTempView("df_final")
+            spark.sql("""
+                        MERGE INTO workspace.silver.cisp as d
+                        USING df_final as o
+                        ON d.id = o.id
+                        WHEN MATCHED THEN UPDATE SET *
+                        WHEN NOT MATCHED THEN INSERT *
+                    """)
+                
+        total_tabela = spark.read.table("workspace.silver.cisp").count()
+        
+        pipeline = "pipeline_silver"
+        camada = "silver"
+        tabela = "carga"
+        status="sucesso"
+        e=""
+    except Exception as e:
+        print(f"Erro no pipeline {table}: {e}")    
+    
+    atualiza_carga(pipeline, camada, tabela,
+                   total_processado, total_tabela,
+                   data_inicio, status,str(e))
     
