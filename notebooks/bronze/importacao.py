@@ -4,7 +4,7 @@
 # COMMAND ----------
 
 #importa dados
-df_raw = spark.read.csv("/Volumes/workspace/default/imported-files/BaseDPEvolucaoMensalCisp.csv",header= True,encoding='latin1',sep=";")
+df_raw = spark.read.csv(f"{caminho_raw}",header= True,encoding='latin1',sep=";")
 
 # deixa as colunas em minúsculas
 for c in df_raw.columns:
